@@ -1,0 +1,17 @@
+{
+  "nextcloudDeckUrl": "https://cloud.deinedomain.de/apps/deck",
+  "window": {
+    "width": 1280,
+    "height": 800,
+    "resizable": true,
+    "fullscreen": false
+  },
+  "security": {
+    "contextIsolation": true,
+    "enableRemoteModule": false
+  },
+  "logging": {
+    "level": "info",
+    "logFile": "app.log"
+  }
+}
