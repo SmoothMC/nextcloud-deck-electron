@@ -6,7 +6,8 @@ type Preferences = {
     baseDomain?: string;
 };
 
-const store = new Store<Preferences>({ name: 'preferences' });
+// electron-store: Typisierung fixen (damit .get / .set korrekt erkannt werden)
+const store = new Store<Preferences>({ name: 'preferences' }) as Store<Preferences>;
 
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -25,7 +26,6 @@ function normalizeBaseDomain(domain: string): string {
 
 function buildDeckUrl(domain: string): string {
     const normalizedBase = normalizeBaseDomain(domain);
-
     return `${normalizedBase}/apps/deck`;
 }
 
@@ -59,7 +59,9 @@ function applyApplicationMenu() {
                             webPreferences: {
                                 preload: path.join(__dirname, 'preload.js'),
                                 contextIsolation: true,
-                                enableRemoteModule: false,
+                                // ⚠️ enableRemoteModule wurde entfernt – bitte NICHT mehr verwenden
+                                nodeIntegration: false,
+                                sandbox: false,
                             },
                         });
 
@@ -88,7 +90,10 @@ function applyApplicationMenu() {
         },
         {
             label: 'Ansicht',
-            submenu: [{ role: 'reload', label: 'Neu laden' }, { role: 'toggledevtools', label: 'Entwicklertools umschalten' }],
+            submenu: [
+                { role: 'reload', label: 'Neu laden' },
+                { role: 'toggleDevTools', label: 'Entwicklertools umschalten' }, // 🔧 Fix: camelCase!
+            ],
         },
     ];
 
@@ -103,7 +108,8 @@ function createMainWindow() {
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
-            enableRemoteModule: false,
+            nodeIntegration: false,
+            sandbox: false,
         },
     });
 
@@ -124,7 +130,6 @@ ipcMain.handle('get-domain', (event) => {
     if (!senderUrl.startsWith('file://')) {
         return undefined;
     }
-
     return store.get('baseDomain');
 });
 
@@ -136,7 +141,6 @@ ipcMain.handle('set-domain', (event, domain: string) => {
 
     try {
         const normalizedDomain = normalizeBaseDomain(domain);
-
         store.set('baseDomain', normalizedDomain);
 
         if (mainWindow) {
