@@ -17,7 +17,7 @@
   	},
   	"directories": {
     	"output": "release",
-    	"buildResources": "icons"
+    	"buildResources": "src/icons"
   	},
   	"files": [
     	"dist/**/*",
