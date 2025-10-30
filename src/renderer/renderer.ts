@@ -1,59 +1,37 @@
-function normaliseDomain(domain: string): string {
-    return domain.trim();
-}
+const form = document.getElementById('domain-form');
+const input = document.getElementById('domain-input');
+const feedback = document.getElementById('feedback');
+const currentDomain = document.getElementById('current-domain');
 
-async function init() {
-    const form = document.getElementById('domain-form') as HTMLFormElement | null;
-    const domainInput = document.getElementById('domain-input') as HTMLInputElement | null;
-    const currentDomainElement = document.getElementById('current-domain') as HTMLParagraphElement | null;
-    const feedbackElement = document.getElementById('feedback') as HTMLParagraphElement | null;
+// Gespeicherte Domain laden
+window.api.getDomain().then(domain => {
+  if (domain) {
+    input.value = domain;
+    currentDomain.textContent = `Aktuell gespeicherte Domain: ${domain}`;
+    currentDomain.hidden = false;
+  } else {
+    currentDomain.hidden = true;
+  }
+});
 
-    if (!form || !domainInput) {
-        return;
-    }
+// Domain speichern
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const domain = input.value.trim();
 
-    const existingDomain = await window.api.getDomain();
-    if (existingDomain) {
-        const normalised = normaliseDomain(existingDomain);
-        domainInput.value = normalised;
-        if (currentDomainElement) {
-            currentDomainElement.textContent = `Aktuell verwendet: ${normalised}`;
-            currentDomainElement.hidden = false;
-        }
-    }
+  if (!domain) {
+    feedback.textContent = 'Bitte eine gültige Domain eingeben.';
+    feedback.classList.add('error');
+    return;
+  }
 
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-
-        const rawValue = domainInput.value.trim();
-        if (!rawValue) {
-            if (feedbackElement) {
-                feedbackElement.textContent = 'Bitte gib eine gültige Domain ein.';
-                feedbackElement.classList.remove('success');
-                feedbackElement.classList.add('error');
-            }
-            domainInput.focus();
-            return;
-        }
-
-        try {
-            await window.api.saveDomain(rawValue);
-            if (feedbackElement) {
-                feedbackElement.textContent = 'Domain gespeichert. Das Hauptfenster lädt die Deck-App neu.';
-                feedbackElement.classList.remove('error');
-                feedbackElement.classList.add('success');
-            }
-        } catch (error) {
-            if (feedbackElement) {
-                feedbackElement.textContent = 'Die Domain konnte nicht gespeichert werden.';
-                feedbackElement.classList.remove('success');
-                feedbackElement.classList.add('error');
-            }
-            console.error('Failed to save domain', error);
-        }
-    });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    void init();
+  try {
+    await window.api.saveDomain(domain);
+    feedback.textContent = 'Domain gespeichert! Deck wird geladen …';
+    feedback.classList.remove('error');
+  } catch (error) {
+    console.error('Fehler beim Speichern der Domain:', error);
+    feedback.textContent = 'Fehler beim Speichern.';
+    feedback.classList.add('error');
+  }
 });

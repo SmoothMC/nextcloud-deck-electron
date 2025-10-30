@@ -1,30 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nextcloud Deck Einstellungen</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nextcloud Deck Einstellungen</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <main class="container">
-        <header>
-            <h1>Nextcloud-Domain festlegen</h1>
-            <p>Bitte gib die Basis-URL deiner Nextcloud-Installation an. Die App öffnet automatisch die Deck-App unter <code>/apps/deck</code>.</p>
-        </header>
+  <main class="container">
+    <header>
+      <h1>Nextcloud-Domain festlegen</h1>
+      <p>Bitte gib die Basis-URL deiner Nextcloud-Installation an. Die App öffnet automatisch die Deck-App unter <code>/apps/deck</code>.</p>
+    </header>
 
-        <section class="settings">
-            <form id="domain-form">
-                <label for="domain-input">Nextcloud-Domain</label>
-                <input id="domain-input" type="text" name="domain" placeholder="https://cloud.beispiel.de" required>
-                <p id="current-domain" class="current-domain" hidden></p>
-                <p id="feedback" class="feedback" aria-live="polite"></p>
-                <div class="actions">
-                    <button type="submit">Speichern</button>
-                </div>
-            </form>
-        </section>
-    </main>
-    <script src="renderer.js"></script>
+    <section class="settings">
+      <form id="domain-form">
+        <label for="domain-input">Nextcloud-Domain</label>
+        <input id="domain-input" type="text" name="domain" placeholder="https://cloud.beispiel.de" required />
+        <p id="current-domain" class="current-domain" hidden></p>
+        <p id="feedback" class="feedback" aria-live="polite"></p>
+        <div class="actions">
+          <button type="submit">Speichern</button>
+        </div>
+      </form>
+    </section>
+  </main>
+  <script src="renderer.js"></script>
 </body>
 </html>

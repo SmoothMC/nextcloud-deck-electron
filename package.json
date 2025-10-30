@@ -1,6 +1,6 @@
 {
   "name": "nextcloud-deck-electron",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "Standalone macOS app for Nextcloud Deck",
   "type": "module",
   "main": "dist/main/main.js",
