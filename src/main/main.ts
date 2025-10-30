@@ -1,18 +1,21 @@
 import { app, BrowserWindow, ipcMain, Menu, type MenuItemConstructorOptions } from 'electron';
 import path from 'path';
-// Electron Store fix: CommonJS require, damit Typen korrekt erkannt werden
-import type { Schema } from 'electron-store';
+
+// Electron Store fix: CommonJS require (keine generischen Typen erlaubt)
 const Store = require('electron-store');
 
+// Manuell typisiertes Interface, damit get/set sauber erkannt werden
 type Preferences = {
-    baseDomain?: string;
+  baseDomain?: string;
 };
 
-// electron-store: Typisierung fixen (damit .get / .set korrekt erkannt werden)
-const store: {
-  get: <K extends keyof Preferences>(key: K) => Preferences[K];
-  set: <K extends keyof Preferences>(key: K, value: Preferences[K]) => void;
-} = new Store<Preferences>({ name: 'preferences' });
+type TypedStore<T> = {
+  get: <K extends keyof T>(key: K) => T[K];
+  set: <K extends keyof T>(key: K, value: T[K]) => void;
+};
+
+const store: TypedStore<Preferences> = new Store({ name: 'preferences' });
+
 
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
