@@ -1,30 +1,36 @@
 {
-  "name": "Nextcloud Deck",
+  "name": "nextcloud-deck-electron",
   "version": "0.9.3",
   "description": "Standalone macOS app for Nextcloud Deck",
-	"type": "module",
+  "type": "module",
   "main": "dist/main/main.js",
   "scripts": {
     "start": "electron .",
     "build": "tsc && electron-builder"
   },
   "build": {
-  	"appId": "de.yourdomain.nextcloud.deck",
-  	"productName": "Nextcloud Deck",
-  	"mac": {
-    	"category": "public.app-category.productivity",
-    	"target": ["dmg", "zip"],
-    	"icon": "src/icons/icon.icns"
-  	},
-  	"directories": {
-    	"output": "release",
-    	"buildResources": "src/icons"
-  	},
-  	"files": [
-    	"dist/**/*",
-    	"package.json"
-  	]
-	},
+    "appId": "de.smoothmc.nextcloud.deck",
+    "productName": "Nextcloud Deck",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg", "zip"],
+      "icon": "src/icons/icon.icns"
+    },
+    "directories": {
+      "output": "release",
+      "buildResources": "src/icons"
+    },
+    "files": [
+      "dist/**/*",
+      "src/renderer/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ]
+  },
   "devDependencies": {
     "@types/node": "^20.16.5",
     "electron": "^28.3.1",
@@ -34,6 +40,6 @@
   "dependencies": {
     "electron-store": "^9.0.0"
   },
-	"author": "SmoothMC",
+  "author": "SmoothMC",
   "license": "MIT"
 }

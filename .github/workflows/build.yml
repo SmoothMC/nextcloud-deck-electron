@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: macos-latest
     env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}  # ✅ Token für electron-builder setzen
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
     steps:
       - name: Checkout Repository
@@ -39,8 +39,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Prepare renderer files
+        run: |
+          mkdir -p dist/renderer
+          cp -r src/renderer/* dist/renderer/
+
       - name: Build macOS app
-        run: npm run build  # electron-builder erkennt GH_TOKEN automatisch
+        run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -54,4 +59,4 @@ jobs:
         with:
           files: release/*.dmg
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # auch hier sicherheitshalber setzen
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
