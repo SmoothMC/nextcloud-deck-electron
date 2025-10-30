@@ -1,21 +1,21 @@
 import { app, BrowserWindow, ipcMain, Menu, type MenuItemConstructorOptions } from 'electron';
 import path from 'path';
 
-// Electron Store fix: CommonJS require (keine generischen Typen erlaubt)
-const Store = require('electron-store');
-
-// Manuell typisiertes Interface, damit get/set sauber erkannt werden
+// Electron Store (ESM-kompatibel über dynamischen Import)
 type Preferences = {
   baseDomain?: string;
 };
 
-type TypedStore<T> = {
-  get: <K extends keyof T>(key: K) => T[K];
-  set: <K extends keyof T>(key: K, value: T[K]) => void;
-};
+let Store: any;
+let store: any;
 
-const store: TypedStore<Preferences> = new Store({ name: 'preferences' });
-
+async function initStore() {
+  if (!Store) {
+    const module = await import('electron-store');
+    Store = module.default;
+  }
+  store = new Store<Preferences>({ name: 'preferences' });
+}
 
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -23,161 +23,161 @@ let settingsWindow: BrowserWindow | null = null;
 const settingsPagePath = path.join(__dirname, '../renderer/index.html');
 
 function normalizeBaseDomain(domain: string): string {
-    const trimmed = domain.trim();
-    if (!trimmed) {
-        throw new Error('Domain must not be empty');
-    }
+  const trimmed = domain.trim();
+  if (!trimmed) {
+    throw new Error('Domain must not be empty');
+  }
 
-    const hasProtocol = /^https?:\/\//i.test(trimmed);
-    return (hasProtocol ? trimmed : `https://${trimmed}`).replace(/\/+$/, '');
+  const hasProtocol = /^https?:\/\//i.test(trimmed);
+  return (hasProtocol ? trimmed : `https://${trimmed}`).replace(/\/+$/, '');
 }
 
 function buildDeckUrl(domain: string): string {
-    const normalizedBase = normalizeBaseDomain(domain);
-    return `${normalizedBase}/apps/deck`;
+  const normalizedBase = normalizeBaseDomain(domain);
+  return `${normalizedBase}/apps/deck`;
 }
 
 function loadDeckInstance(window: BrowserWindow, domain: string) {
-    window.loadURL(buildDeckUrl(domain));
+  window.loadURL(buildDeckUrl(domain));
 }
 
 function loadSettingsPage(targetWindow: BrowserWindow) {
-    targetWindow.loadFile(settingsPagePath);
+  targetWindow.loadFile(settingsPagePath);
 }
 
 function applyApplicationMenu() {
-    const template: MenuItemConstructorOptions[] = [
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: app.name,
+      submenu: [
         {
-            label: app.name,
-            submenu: [
-                {
-                    label: 'Einstellungen',
-                    click: () => {
-                        if (settingsWindow) {
-                            settingsWindow.focus();
-                            return;
-                        }
+          label: 'Einstellungen',
+          click: () => {
+            if (settingsWindow) {
+              settingsWindow.focus();
+              return;
+            }
 
-                        settingsWindow = new BrowserWindow({
-                            width: 420,
-                            height: 360,
-                            parent: mainWindow ?? undefined,
-                            modal: Boolean(mainWindow),
-                            resizable: false,
-                            webPreferences: {
-                                preload: path.join(__dirname, 'preload.js'),
-                                contextIsolation: true,
-                                // ⚠️ enableRemoteModule wurde entfernt – bitte NICHT mehr verwenden
-                                nodeIntegration: false,
-                                sandbox: false,
-                            },
-                        });
+            settingsWindow = new BrowserWindow({
+              width: 420,
+              height: 360,
+              parent: mainWindow ?? undefined,
+              modal: Boolean(mainWindow),
+              resizable: false,
+              webPreferences: {
+                preload: path.join(__dirname, 'preload.js'),
+                contextIsolation: true,
+                nodeIntegration: false,
+                sandbox: false,
+              },
+            });
 
-                        settingsWindow.on('closed', () => {
-                            settingsWindow = null;
-                        });
+            settingsWindow.on('closed', () => {
+              settingsWindow = null;
+            });
 
-                        loadSettingsPage(settingsWindow);
-                    },
-                },
-                { type: 'separator' },
-                { role: 'quit', label: 'Beenden' },
-            ],
+            loadSettingsPage(settingsWindow);
+          },
         },
-        {
-            label: 'Bearbeiten',
-            submenu: [
-                { role: 'undo', label: 'Rückgängig' },
-                { role: 'redo', label: 'Wiederholen' },
-                { type: 'separator' },
-                { role: 'cut', label: 'Ausschneiden' },
-                { role: 'copy', label: 'Kopieren' },
-                { role: 'paste', label: 'Einfügen' },
-                { role: 'selectAll', label: 'Alles auswählen' },
-            ],
-        },
-        {
-            label: 'Ansicht',
-            submenu: [
-                { role: 'reload', label: 'Neu laden' },
-                { role: 'toggleDevTools', label: 'Entwicklertools umschalten' }, // 🔧 Fix: camelCase!
-            ],
-        },
-    ];
+        { type: 'separator' },
+        { role: 'quit', label: 'Beenden' },
+      ],
+    },
+    {
+      label: 'Bearbeiten',
+      submenu: [
+        { role: 'undo', label: 'Rückgängig' },
+        { role: 'redo', label: 'Wiederholen' },
+        { type: 'separator' },
+        { role: 'cut', label: 'Ausschneiden' },
+        { role: 'copy', label: 'Kopieren' },
+        { role: 'paste', label: 'Einfügen' },
+        { role: 'selectAll', label: 'Alles auswählen' },
+      ],
+    },
+    {
+      label: 'Ansicht',
+      submenu: [
+        { role: 'reload', label: 'Neu laden' },
+        { role: 'toggleDevTools', label: 'Entwicklertools umschalten' },
+      ],
+    },
+  ];
 
-    const menu = Menu.buildFromTemplate(template);
-    Menu.setApplicationMenu(menu);
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 }
 
 function createMainWindow() {
-    mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
-        webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-            sandbox: false,
-        },
-    });
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
 
-    mainWindow.on('closed', () => {
-        mainWindow = null;
-    });
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 
-    const savedDomain = store.get('baseDomain');
-    if (savedDomain) {
-        loadDeckInstance(mainWindow, savedDomain);
-    } else {
-        loadSettingsPage(mainWindow);
-    }
+  const savedDomain = store?.get('baseDomain');
+  if (savedDomain) {
+    loadDeckInstance(mainWindow, savedDomain);
+  } else {
+    loadSettingsPage(mainWindow);
+  }
 }
 
 ipcMain.handle('get-domain', (event) => {
-    const senderUrl = event.senderFrame.url;
-    if (!senderUrl.startsWith('file://')) {
-        return undefined;
-    }
-    return store.get('baseDomain');
+  const senderUrl = event.senderFrame.url;
+  if (!senderUrl.startsWith('file://')) {
+    return undefined;
+  }
+  return store?.get('baseDomain');
 });
 
 ipcMain.handle('set-domain', (event, domain: string) => {
-    const senderUrl = event.senderFrame.url;
-    if (!senderUrl.startsWith('file://')) {
-        return;
+  const senderUrl = event.senderFrame.url;
+  if (!senderUrl.startsWith('file://')) {
+    return;
+  }
+
+  try {
+    const normalizedDomain = normalizeBaseDomain(domain);
+    store?.set('baseDomain', normalizedDomain);
+
+    if (mainWindow) {
+      loadDeckInstance(mainWindow, normalizedDomain);
     }
 
-    try {
-        const normalizedDomain = normalizeBaseDomain(domain);
-        store.set('baseDomain', normalizedDomain);
-
-        if (mainWindow) {
-            loadDeckInstance(mainWindow, normalizedDomain);
-        }
-
-        if (settingsWindow) {
-            settingsWindow.close();
-            settingsWindow = null;
-        }
-    } catch (error) {
-        console.error('Failed to store domain', error);
-        throw error instanceof Error ? error : new Error('Failed to store domain');
+    if (settingsWindow) {
+      settingsWindow.close();
+      settingsWindow = null;
     }
+  } catch (error) {
+    console.error('Failed to store domain', error);
+    throw error instanceof Error ? error : new Error('Failed to store domain');
+  }
 });
 
-app.whenReady().then(() => {
-    createMainWindow();
-    applyApplicationMenu();
+app.whenReady().then(async () => {
+  await initStore(); // ⬅️ electron-store initialisieren
+  createMainWindow();
+  applyApplicationMenu();
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
 app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createMainWindow();
-    }
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createMainWindow();
+  }
 });
