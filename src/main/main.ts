@@ -14,7 +14,12 @@ async function initStore() {
     const module = await import('electron-store');
     Store = module.default;
   }
-  store = new Store<Preferences>({ name: 'preferences' });
+
+  // kein <Preferences>, stattdessen cast
+  store = new Store({ name: 'preferences' }) as {
+    get(key: keyof Preferences): Preferences[keyof Preferences];
+    set(key: keyof Preferences, value: Preferences[keyof Preferences]): void;
+  };
 }
 
 let mainWindow: BrowserWindow | null = null;
