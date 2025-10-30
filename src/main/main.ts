@@ -19,11 +19,12 @@ async function initStore() {
     Store = module.default;
   }
 
-  // kein <Preferences>, stattdessen cast
-  store = new Store({ name: 'preferences' }) as {
-    get(key: keyof Preferences): Preferences[keyof Preferences];
-    set(key: keyof Preferences, value: Preferences[keyof Preferences]): void;
-  };
+  store = new Store<Preferences>({
+    name: 'preferences',
+    cwd: app.getPath('userData'), // ⚡ erzwingt sicheren, persistenten Speicherpfad
+  });
+
+  console.log('[Store initialized]', store.path);
 }
 
 let mainWindow: BrowserWindow | null = null;
