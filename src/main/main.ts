@@ -5,13 +5,18 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Electron Store (ESM-kompatibel über dynamischen Import)
+// --- Typen -------------------------------------------------------------------
 type Preferences = {
   baseDomain?: string;
 };
 
+// --- Electron Store ----------------------------------------------------------
 let Store: any;
-let store: any;
+let store: {
+  get(key: keyof Preferences): Preferences[keyof Preferences];
+  set(key: keyof Preferences, value: Preferences[keyof Preferences]): void;
+  path: string;
+} | null = null;
 
 async function initStore() {
   if (!Store) {
@@ -19,25 +24,28 @@ async function initStore() {
     Store = module.default;
   }
 
-  store = new Store<Preferences>({
+  store = new Store({
     name: 'preferences',
-    cwd: app.getPath('userData'), // ⚡ erzwingt sicheren, persistenten Speicherpfad
-  });
+    cwd: app.getPath('userData'), // ✅ persistenter Pfad ~/Library/Application Support/Nextcloud Deck/
+  }) as {
+    get(key: keyof Preferences): Preferences[keyof Preferences];
+    set(key: keyof Preferences, value: Preferences[keyof Preferences]): void;
+    path: string;
+  };
 
-  console.log('[Store initialized]', store.path);
+  console.log('[Store initialized]', (store as any).path);
 }
 
+// --- Fenster Referenzen ------------------------------------------------------
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
 
 const settingsPagePath = path.join(__dirname, '../renderer/index.html');
 
+// --- Hilfsfunktionen ---------------------------------------------------------
 function normalizeBaseDomain(domain: string): string {
   const trimmed = domain.trim();
-  if (!trimmed) {
-    throw new Error('Domain must not be empty');
-  }
-
+  if (!trimmed) throw new Error('Domain must not be empty');
   const hasProtocol = /^https?:\/\//i.test(trimmed);
   return (hasProtocol ? trimmed : `https://${trimmed}`).replace(/\/+$/, '');
 }
@@ -55,6 +63,7 @@ function loadSettingsPage(targetWindow: BrowserWindow) {
   targetWindow.loadFile(settingsPagePath);
 }
 
+// --- Menü --------------------------------------------------------------------
 function applyApplicationMenu() {
   const template: MenuItemConstructorOptions[] = [
     {
@@ -118,7 +127,8 @@ function applyApplicationMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-function createMainWindow() {
+// --- Hauptfenster ------------------------------------------------------------
+async function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -135,6 +145,8 @@ function createMainWindow() {
   });
 
   const savedDomain = store?.get('baseDomain');
+  console.log('[Store] loaded domain:', savedDomain);
+
   if (savedDomain) {
     loadDeckInstance(mainWindow, savedDomain);
   } else {
@@ -142,52 +154,56 @@ function createMainWindow() {
   }
 }
 
+// --- IPC Handler -------------------------------------------------------------
 ipcMain.handle('get-domain', (event) => {
   const senderUrl = event.senderFrame.url;
-  if (!senderUrl.startsWith('file://')) {
-    return undefined;
-  }
-  return store?.get('baseDomain');
+  if (!senderUrl.startsWith('file://')) return undefined;
+  const value = store?.get('baseDomain');
+  console.log('[IPC] get-domain ->', value);
+  return value;
 });
 
 ipcMain.handle('set-domain', (event, domain: string) => {
   const senderUrl = event.senderFrame.url;
+  console.log('[IPC] set-domain triggered', senderUrl, domain);
+
   if (!senderUrl.startsWith('file://')) {
+    console.warn('[IPC] Ignored non-local set-domain request');
     return;
   }
 
   try {
     const normalizedDomain = normalizeBaseDomain(domain);
     store?.set('baseDomain', normalizedDomain);
+    console.log('[Store] Saved baseDomain:', store?.get('baseDomain'));
 
-    if (mainWindow) {
-      loadDeckInstance(mainWindow, normalizedDomain);
-    }
-
+    if (mainWindow) loadDeckInstance(mainWindow, normalizedDomain);
     if (settingsWindow) {
       settingsWindow.close();
       settingsWindow = null;
     }
   } catch (error) {
-    console.error('Failed to store domain', error);
+    console.error('[Error] Failed to store domain', error);
     throw error instanceof Error ? error : new Error('Failed to store domain');
   }
 });
 
+// --- App Lifecycle -----------------------------------------------------------
 app.whenReady().then(async () => {
-  await initStore(); // ⬅️ electron-store initialisieren
-  createMainWindow();
-  applyApplicationMenu();
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  try {
+    await initStore();
+    await createMainWindow();
+    applyApplicationMenu();
+  } catch (error) {
+    console.error('[App Error]', error);
     app.quit();
   }
 });
 
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createMainWindow();
-  }
+  if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
 });
