@@ -2,7 +2,7 @@
   "name": "nextcloud-deck-electron",
   "version": "1.0.0",
   "description": "Standalone macOS app for Nextcloud Deck",
-  "main": "dist/main/main.js"
+  "main": "dist/main/main.js",
   "scripts": {
     "start": "electron .",
     "build": "tsc && electron-builder"
